@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>八界のイザナミ Ver0.1 縦画面戦術アクションモック</title>
+<style>
+  :root{
+    --bg1:#07111f;
+    --bg2:#101b2f;
+    --panel:#111827cc;
+    --line:#78d7ff55;
+    --gold:#ffd66b;
+    --danger:#ff5a6f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at top,#193356 0%,var(--bg1) 52%,#04070d 100%);
+    color:#fff;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    overflow:hidden;
+    touch-action:none;
+  }
+  .wrap{
+    width:100vw;
+    height:100dvh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+  #game{
+    position:relative;
+    width:min(100vw,430px);
+    height:100dvh;
+    max-height:920px;
+    overflow:hidden;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.08),transparent 28%),
+      radial-gradient(circle at 50% 18%,rgba(255,85,130,.18),transparent 26%),
+      radial-gradient(circle at 50% 88%,rgba(80,180,255,.18),transparent 28%),
+      linear-gradient(180deg,#12223a,#07111f 55%,#0b1220);
+    border-left:1px solid #ffffff20;
+    border-right:1px solid #ffffff20;
+  }
+  .hud{
+    position:absolute;
+    top:10px;
+    left:10px;
+    right:10px;
+    z-index:20;
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    pointer-events:none;
+  }
+  .chip{
+    padding:7px 10px;
+    border:1px solid #ffffff26;
+    border-radius:999px;
+    background:rgba(3,8,16,.62);
+    box-shadow:0 0 18px #0008 inset;
+    font-size:13px;
+    letter-spacing:.04em;
+    backdrop-filter:blur(6px);
+  }
+  .title{
+    position:absolute;
+    top:48px;
+    left:0;
+    right:0;
+    text-align:center;
+    color:#dff6ff;
+    font-size:13px;
+    opacity:.86;
+    z-index:5;
+    letter-spacing:.16em;
+  }
+  .divider{
+    position:absolute;
+    left:18px;
+    right:18px;
+    top:66%;
+    height:1px;
+    border-top:1px dashed rgba(151,215,255,.38);
+    z-index:2;
+  }
+  .areaLabel{
+    position:absolute;
+    left:14px;
+    padding:4px 9px;
+    border-radius:10px;
+    font-size:11px;
+    color:#c8edff;
+    background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.12);
+    z-index:3;
+  }
+  .enemyLabel{top:77px;}
+  .allyLabel{bottom:160px;}
+  .unit,.enemy,.boss{
+    position:absolute;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:translate(-50%,-50%);
+    z-index:8;
+  }
+  .unit{
+    width:48px;
+    height:48px;
+    border:2px solid #ffffffcc;
+    box-shadow:0 0 12px currentColor, inset 0 0 14px #ffffff35;
+    font-weight:700;
+    font-size:11px;
+    color:#fff;
+    cursor:pointer;
+  }
+  .unit.dead{filter:grayscale(1);opacity:.28;box-shadow:none;}
+  .unit.active{outline:3px solid #fff8;outline-offset:3px;}
+  .enemy{
+    width:28px;
+    height:28px;
+    background:#2b0d20;
+    border:1px solid #ff7890;
+    box-shadow:0 0 10px #ff426d99, inset 0 0 9px #ff89a044;
+  }
+  .enemy::after{
+    content:"";
+    width:8px;height:8px;border-radius:50%;background:#ffb3c0;box-shadow:0 0 8px #fff;
+  }
+  .boss{
+    width:78px;
+    height:78px;
+    background:radial-gradient(circle,#ff9aaa 0%,#7d1d3f 46%,#200713 100%);
+    border:3px solid #ffc0ca;
+    box-shadow:0 0 26px #ff416c, inset 0 0 22px #000;
+    color:#fff;
+    flex-direction:column;
+    font-weight:800;
+    font-size:13px;
+    z-index:9;
+  }
+  .boss small{font-size:10px;color:#ffe3e8;font-weight:600;}
+  .boss.pulse{animation:bossPulse .8s infinite alternate;}
+  @keyframes bossPulse{from{box-shadow:0 0 18px #ff416c,inset 0 0 22px #000;}to{box-shadow:0 0 40px #ff89a5,inset 0 0 12px #fff6;}}
+  .aimLine{
+    position:absolute;
+    height:4px;
+    background:linear-gradient(90deg,#ffffff00,#ffffff,#78d7ff);
+    transform-origin:left center;
+    z-index:7;
+    border-radius:999px;
+    pointer-events:none;
+    display:none;
+    box-shadow:0 0 12px #8de7ff;
+  }
+  .buttonBar{
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:14px;
+    z-index:30;
+    display:flex;
+    gap:8px;
+  }
+  button{
+    flex:1;
+    border:0;
+    border-radius:14px;
+    padding:13px 8px;
+    color:#251600;
+    background:linear-gradient(180deg,#fff1a8,#eab545);
+    font-weight:900;
+    font-size:14px;
+    box-shadow:0 5px 0 #8b6319,0 0 18px #ffd66b55;
+  }
+  button:active{transform:translateY(3px);box-shadow:0 2px 0 #8b6319,0 0 18px #ffd66b55;}
+  button.secondary{background:linear-gradient(180deg,#e8f7ff,#74c9ff);box-shadow:0 5px 0 #2d6788,0 0 18px #74c9ff55;color:#062033;}
+  .message{
+    position:absolute;
+    left:50%;top:48%;
+    transform:translate(-50%,-50%);
+    z-index:50;
+    min-width:250px;
+    text-align:center;
+    padding:20px 16px;
+    border-radius:22px;
+    background:rgba(3,8,16,.86);
+    border:1px solid #ffffff3d;
+    box-shadow:0 0 40px #000, inset 0 0 24px #ffffff10;
+    display:none;
+  }
+  .message h1{margin:0 0 8px;font-size:34px;letter-spacing:.12em;}
+  .message p{margin:0;font-size:13px;color:#d7ecff;line-height:1.6;}
+  .fx{
+    position:absolute;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+    z-index:18;
+  }
+  .hit{
+    width:24px;height:24px;border-radius:50%;border:2px solid #fff;animation:hit .42s ease-out forwards;box-shadow:0 0 18px #fff;
+  }
+  @keyframes hit{to{width:70px;height:70px;opacity:0;}}
+  .slash{
+    position:absolute;
+    left:-18%;right:-18%;top:45%;height:16px;
+    background:linear-gradient(90deg,transparent,#fff,#ffe58a,#fff,transparent);
+    transform:rotate(-9deg) scaleX(.2);
+    transform-origin:center;
+    opacity:0;
+    z-index:40;
+    box-shadow:0 0 26px #fff,0 0 42px #ffd66b;
+    pointer-events:none;
+  }
+  .slash.on{animation:slash .44s ease-out forwards;}
+  @keyframes slash{0%{opacity:0;transform:rotate(-9deg) scaleX(.08);}35%{opacity:1;}100%{opacity:0;transform:rotate(-9deg) scaleX(1);}}
+  .particle{
+    position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;z-index:45;pointer-events:none;animation:particle .7s ease-out forwards;
+  }
+  @keyframes particle{to{transform:translate(var(--dx),var(--dy));opacity:0;}}
+  .log{
+    position:absolute;
+    left:12px;right:12px;bottom:74px;
+    height:58px;
+    overflow:hidden;
+    z-index:15;
+    padding:8px 10px;
+    border-radius:14px;
+    background:rgba(0,0,0,.28);
+    color:#dff6ff;
+    font-size:12px;
+    line-height:1.55;
+    border:1px solid rgba(255,255,255,.12);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main id="game">
+    <div class="hud">
+      <div class="chip">母体HP <span id="bossHp">10</span>/10</div>
+      <div class="chip">残り <span id="timeLeft">30</span>秒</div>
+    </div>
+    <div class="title">八界のイザナミ Ver0.1 縦画面戦術アクション</div>
+    <div class="areaLabel enemyLabel">敵エリア：群生メナス / 母体メナス</div>
+    <div class="divider"></div>
+    <div class="areaLabel allyLabel">味方エリア：武者隊</div>
+    <div id="aimLine" class="aimLine"></div>
+    <div id="slash" class="slash"></div>
+    <div id="log" class="log">武者アイコンをドラッグして、上方向へ放してください。</div>
+    <div class="buttonBar">
+      <button id="skillBtn">草薙一閃</button>
+      <button id="resetBtn" class="secondary">再戦</button>
+    </div>
+    <div id="message" class="message">
+      <h1 id="resultTitle">勝利</h1>
+      <p id="resultText">母体メナス撃破。群生崩壊。</p>
+    </div>
+  </main>
+</div>
+<script>
+(()=>{
+  const game=document.getElementById('game');
+  const bossHpEl=document.getElementById('bossHp');
+  const timeLeftEl=document.getElementById('timeLeft');
+  const aimLine=document.getElementById('aimLine');
+  const slash=document.getElementById('slash');
+  const logEl=document.getElementById('log');
+  const msg=document.getElementById('message');
+  const resultTitle=document.getElementById('resultTitle');
+  const resultText=document.getElementById('resultText');
+  const skillBtn=document.getElementById('skillBtn');
+  const resetBtn=document.getElementById('resetBtn');
+
+  const allyDefs=[
+    {name:'いずも', color:'#4ba3ff', x:.22, y:.82},
+    {name:'摩耶', color:'#ff566b', x:.42, y:.86},
+    {name:'むらさめ', color:'#59d37c', x:.60, y:.82},
+    {name:'あきづき', color:'#f4d24f', x:.78, y:.86}
+  ];
+  let units=[], enemies=[], boss, bossHp, timeLeft, ended, selected, dragStart, timer;
+
+  function rect(){return game.getBoundingClientRect();}
+  function px(v,axis){const r=rect(); return axis==='x'?v*r.width:v*r.height;}
+  function log(t){logEl.innerHTML=t+'<br>'+logEl.innerHTML.split('<br>').slice(0,2).join('<br>');}
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+
+  function makeDiv(cls,x,y){
+    const d=document.createElement('div'); d.className=cls; d.style.left=x+'px'; d.style.top=y+'px'; game.appendChild(d); return d;
+  }
+  function setPos(o){o.el.style.left=o.x+'px'; o.el.style.top=o.y+'px';}
+
+  function init(){
+    clearInterval(timer);
+    [...game.querySelectorAll('.unit,.enemy,.boss,.fx,.particle')].forEach(e=>e.remove());
+    msg.style.display='none'; ended=false; selected=null; bossHp=10; timeLeft=30; bossHpEl.textContent=bossHp; timeLeftEl.textContent=timeLeft;
+    const r=rect();
+    units=allyDefs.map(def=>{
+      const u={...def,x:r.width*def.x,y:r.height*def.y,vx:0,vy:0,r:24,hp:1,dead:false};
+      u.el=makeDiv('unit',u.x,u.y); u.el.style.background=def.color; u.el.style.color=def.color; u.el.innerHTML='<span style="color:#fff">'+def.name+'</span>';
+      bindUnit(u); return u;
+    });
+    boss={x:r.width*.5,y:r.height*.18,r:39}; boss.el=makeDiv('boss pulse',boss.x,boss.y); boss.el.innerHTML='母体<small>MENACE</small>';
+    const positions=[[.20,.23],[.35,.29],[.65,.29],[.80,.23],[.24,.39],[.42,.37],[.58,.37],[.76,.39],[.32,.49],[.50,.46],[.68,.49],[.16,.55],[.84,.55]];
+    enemies=positions.map((p,i)=>{const e={x:r.width*p[0],y:r.height*p[1],r:14,dead:false}; e.el=makeDiv('enemy',e.x,e.y); return e;});
+    logEl.innerHTML='武者アイコンをドラッグして、上方向へ放してください。';
+    timer=setInterval(()=>{ if(ended)return; timeLeft--; timeLeftEl.textContent=timeLeft; if(timeLeft<=0) lose('30秒経過。母体討伐失敗。');},1000);
+    requestAnimationFrame(loop);
+  }
+
+  function bindUnit(u){
+    u.el.addEventListener('pointerdown',ev=>{
+      if(ended||u.dead)return;
+      selected=u; dragStart=getPoint(ev); u.el.setPointerCapture(ev.pointerId); u.el.classList.add('active');
+    });
+    u.el.addEventListener('pointermove',ev=>{
+      if(!selected||selected!==u||!dragStart)return;
+      const p=getPoint(ev); const dx=dragStart.x-p.x; const dy=dragStart.y-p.y;
+      const len=Math.hypot(dx,dy); const angle=Math.atan2(dy,dx);
+      aimLine.style.display='block'; aimLine.style.left=u.x+'px'; aimLine.style.top=u.y+'px'; aimLine.style.width=Math.min(120,len)+'px'; aimLine.style.transform='rotate('+angle+'rad)';
+    });
+    u.el.addEventListener('pointerup',ev=>releaseUnit(u,ev));
+    u.el.addEventListener('pointercancel',ev=>releaseUnit(u,ev));
+  }
+  function getPoint(ev){const r=rect();return{x:ev.clientX-r.left,y:ev.clientY-r.top};}
+  function releaseUnit(u,ev){
+    if(!selected||selected!==u||!dragStart)return;
+    const p=getPoint(ev); const dx=dragStart.x-p.x; const dy=dragStart.y-p.y;
+    const power=clamp(Math.hypot(dx,dy),20,150)/150;
+    u.vx=dx*.105*power; u.vy=dy*.105*power;
+    if(Math.abs(u.vx)<.8&&Math.abs(u.vy)<.8){u.vx=0;u.vy=-8;}
+    u.el.classList.remove('active'); selected=null; dragStart=null; aimLine.style.display='none';
+    log(u.name+'、出撃。');
+  }
+
+  function loop(){
+    if(!ended){
+      const r=rect();
+      units.forEach(u=>{
+        if(u.dead)return;
+        u.x+=u.vx; u.y+=u.vy; u.vx*=.985; u.vy*=.985;
+        if(u.x<u.r||u.x>r.width-u.r){u.vx*=-.82; u.x=clamp(u.x,u.r,r.width-u.r);}
+        if(u.y<80+u.r||u.y>r.height-115-u.r){u.vy*=-.82; u.y=clamp(u.y,80+u.r,r.height-115-u.r);}
+        enemies.forEach(e=>{ if(!e.dead && dist(u,e)<u.r+e.r){ killEnemy(e,u.x,u.y); bounce(u,e,.75); }});
+        if(bossHp>0 && dist(u,boss)<u.r+boss.r){ damageBoss(1,u.x,u.y); bounce(u,boss,1.0); }
+        setPos(u);
+      });
+      if(!units.some(u=>!u.dead)) lose('味方全滅。');
+    }
+    requestAnimationFrame(loop);
+  }
+  function bounce(u,target,scale){
+    const ang=Math.atan2(u.y-target.y,u.x-target.x);
+    u.vx=Math.cos(ang)*8*scale; u.vy=Math.sin(ang)*8*scale;
+  }
+  function killEnemy(e,x,y){
+    e.dead=true; e.el.remove(); fx(x,y,'hit'); log('群生メナス撃破。');
+  }
+  function damageBoss(d,x,y){
+    if(ended)return; bossHp=Math.max(0,bossHp-d); bossHpEl.textContent=bossHp; fx(x,y,'hit'); shake(5); log('母体メナスに '+d+' ダメージ。');
+    if(bossHp<=0) win();
+  }
+  function fx(x,y,cls){const f=makeDiv('fx '+cls,x,y); setTimeout(()=>f.remove(),700);}
+  function shake(n){game.animate([{transform:'translateX(0)'},{transform:'translateX('+n+'px)'},{transform:'translateX(-'+n+'px)'},{transform:'translateX(0)'}],{duration:180,iterations:1});}
+  function burst(x,y,count=22){
+    for(let i=0;i<count;i++){
+      const p=document.createElement('div'); p.className='particle'; p.style.left=x+'px'; p.style.top=y+'px';
+      const a=Math.random()*Math.PI*2, d=35+Math.random()*80; p.style.setProperty('--dx',Math.cos(a)*d+'px'); p.style.setProperty('--dy',Math.sin(a)*d+'px');
+      game.appendChild(p); setTimeout(()=>p.remove(),760);
+    }
+  }
+  function win(){
+    ended=true; clearInterval(timer); boss.el.remove(); enemies.forEach(e=>{if(!e.dead){burst(e.x,e.y,6);e.el.remove();e.dead=true;}}); burst(boss.x,boss.y,60); shake(10);
+    resultTitle.textContent='勝利'; resultTitle.style.color='#ffe58a'; resultText.textContent='母体メナス撃破。群生メナス、連鎖崩壊。'; msg.style.display='block'; log('母体撃破。群生崩壊。');
+  }
+  function lose(t){
+    if(ended)return; ended=true; clearInterval(timer); resultTitle.textContent='敗北'; resultTitle.style.color='#ff7890'; resultText.textContent=t; msg.style.display='block'; log(t);
+  }
+  skillBtn.addEventListener('click',()=>{
+    if(ended)return;
+    slash.classList.remove('on'); void slash.offsetWidth; slash.classList.add('on'); shake(8); log('神札仮実装：草薙一閃。');
+    enemies.forEach(e=>{ if(!e.dead && Math.abs(e.y-rect().height*.45)<130){killEnemy(e,e.x,e.y); burst(e.x,e.y,8);} });
+    damageBoss(3,boss.x,boss.y); burst(boss.x,boss.y,25);
+  });
+  resetBtn.addEventListener('click',init);
+  window.addEventListener('resize',()=>setTimeout(init,120));
+  init();
+})();
+</script>
+</body>
+</html>
